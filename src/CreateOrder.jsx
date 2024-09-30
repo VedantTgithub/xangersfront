@@ -228,7 +228,10 @@ const CreateOrder = () => {
                 </table>
 
                 <h3>Step 3: Submit Your Order</h3>
-                <button type="submit">Submit Order</button>
+                <button type="submit" style={{ backgroundColor: '#b71c1c', color: 'white' }}>
+    Submit Order
+</button>
+
             </form>
         </div>
     );
