@@ -81,6 +81,9 @@ const CentralAdminDashboard = () => {
     return (
         <div>
             <h2>Central Admin Order Management</h2>
+            <a href="/order_template.csv" download>
+                    <button type="button">Download Template for Stock</button>
+            </a>
             <input type="file" accept=".csv" onChange={handleFileUpload} />
             <table>
                 <thead>
