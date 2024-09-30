@@ -152,7 +152,7 @@ const CreateOrder = () => {
             <form onSubmit={handleSubmit} className="order-form">
                 <h3>Step 1: Upload an Order Template</h3>
                 <a href="/order_template.csv" download>
-                    <button type="button" style={{backgroundColor: "white", color: "white", border: "none", padding: "10px 20px", cursor: "pointer"}}>
+                    <button type="button">
                         Download Template
                     </button>
                 </a>
