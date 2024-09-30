@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
 import './CreateOrder.css';
@@ -17,6 +17,10 @@ const CreateOrder = () => {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                error: (error) => {
+                    console.error('Error parsing CSV:', error);
+                    alert('Error parsing CSV file. Please check the file format.');
+                },
                 complete: (result) => {
                     const parsedProducts = result.data.map(row => ({
                         code: row["Product Code"] || '',
@@ -29,69 +33,57 @@ const CreateOrder = () => {
                     }));
 
                     setProducts(parsedProducts);
-
-                    const totalQty = parsedProducts.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
-                    const totalValue = parsedProducts.reduce((sum, product) => sum + product.totalValue, 0);
-                    setTotalQty(totalQty);
-                    setTotalValue(totalValue);
                 }
             });
         }
     };
 
     const handleQuantityChange = (index, newQty) => {
-        const updatedProducts = products.map((product, i) => {
-            if (i === index) {
-                const updatedQty = Number(newQty);
-                return { ...product, quantityOrdered: updatedQty, totalValue: updatedQty * product.price };
-            }
-            return product;
+        setProducts(prevProducts => {
+            return prevProducts.map((product, i) => {
+                if (i === index) {
+                    const updatedQty = Number(newQty);
+                    return { ...product, quantityOrdered: updatedQty, totalValue: updatedQty * product.price };
+                }
+                return product;
+            });
         });
-
-        setProducts(updatedProducts);
-        updateTotals(updatedProducts);
     };
 
     const handleEditToggle = (index) => {
-        const updatedProducts = products.map((product, i) =>
-            i === index
-                ? { ...product, isEditing: !product.isEditing }
-                : product
-        );
-
-        // If switching from editing to non-editing, update the totals
-        if (updatedProducts[index].isEditing) {
-            updateTotals(updatedProducts);
-        }
-        
-        setProducts(updatedProducts);
+        setProducts(prevProducts => {
+            return prevProducts.map((product, i) =>
+                i === index
+                    ? { ...product, isEditing: !product.isEditing }
+                    : product
+            );
+        });
     };
 
     const handleInputChange = (index, field, value) => {
-        const updatedProducts = products.map((product, i) => {
-            if (i === index) {
-                const updatedProduct = {
-                    ...product,
-                    [field]: field === 'price' || field === 'minOrderQty' || field === 'quantityOrdered'
-                        ? parseFloat(value) || 0
-                        : value
-                };
-                updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered; // Recalculate total value
-                return updatedProduct;
-            }
-            return product;
+        setProducts(prevProducts => {
+            return prevProducts.map((product, i) => {
+                if (i === index) {
+                    const updatedProduct = {
+                        ...product,
+                        [field]: field === 'price' || field === 'minOrderQty' || field === 'quantityOrdered'
+                            ? parseFloat(value) || 0
+                            : value
+                    };
+                    updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered;
+                    return updatedProduct;
+                }
+                return product;
+            });
         });
-        
-        setProducts(updatedProducts);
-        updateTotals(updatedProducts);
     };
 
-    const updateTotals = (updatedProducts) => {
-        const newTotalQty = updatedProducts.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
-        const newTotalValue = updatedProducts.reduce((sum, product) => sum + product.totalValue, 0);
+    useEffect(() => {
+        const newTotalQty = products.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
+        const newTotalValue = products.reduce((sum, product) => sum + product.totalValue, 0);
         setTotalQty(newTotalQty);
         setTotalValue(newTotalValue);
-    };
+    }, [products]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -136,6 +128,8 @@ const CreateOrder = () => {
         }
     };
 
+    const memoizedProducts = useMemo(() => products, [products]);
+
     return (
         <div className="create-order-container">
             <nav className="navbar">
@@ -158,11 +152,10 @@ const CreateOrder = () => {
             <form onSubmit={handleSubmit} className="order-form">
                 <h3>Step 1: Upload an Order Template</h3>
                 <a href="/order_template.csv" download>
-    <button type="button" style="background-color:white; color: white; border: none; padding: 10px 20px; cursor: pointer;">
-        Download Template
-    </button>
-</a>
-
+                    <button type="button" style={{backgroundColor: "white", color: "white", border: "none", padding: "10px 20px", cursor: "pointer"}}>
+                        Download Template
+                    </button>
+                </a>
 
                 <input type="file" accept=".csv" onChange={handleCSVUpload} />
 
@@ -197,7 +190,7 @@ const CreateOrder = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map((product, index) => (
+                        {memoizedProducts.map((product, index) => (
                             <tr key={index}>
                                 {product.isEditing ? (
                                     <>
