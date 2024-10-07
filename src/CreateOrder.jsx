@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
 import './CreateOrder.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const CreateOrder = () => {
     const [distributorName, setDistributorName] = useState('');
@@ -10,6 +10,32 @@ const CreateOrder = () => {
     const [totalQty, setTotalQty] = useState(0);
     const [totalValue, setTotalValue] = useState(0);
     const [products, setProducts] = useState([]);
+    const navigate = useNavigate();
+    const [availableProducts, setAvailableProducts] = useState([]);
+    
+    useEffect(() => {
+        const fetchDistributorAndProducts = async () => {
+            try {
+                const distributorId = sessionStorage.getItem('distributorId');
+                if (!distributorId) {
+                    alert('Distributor information not found. Please log in again.');
+                    navigate('/');
+                    return;
+                }
+
+                const distributorResponse = await axios.get(`http://localhost:1234/api/distributors/${distributorId}`);
+                setDistributorName(distributorResponse.data.DistributorName);
+
+                const productsResponse = await axios.get(`http://localhost:1234/api/products/country/${distributorResponse.data.CountryName}`);
+                setAvailableProducts(productsResponse.data);
+            } catch (error) {
+                console.error('Error fetching distributor information or products:', error);
+                alert('Failed to load distributor information or available products.');
+            }
+        };
+
+        fetchDistributorAndProducts();
+    }, [navigate]);
 
     const handleCSVUpload = (e) => {
         const file = e.target.files[0];
@@ -128,6 +154,12 @@ const CreateOrder = () => {
         }
     };
 
+    // Logout function to clear session and redirect to login page
+    const handleLogout = () => {
+        sessionStorage.removeItem('user'); // Clearing session
+        navigate('/'); // Redirecting to login page
+    };
+
     const memoizedProducts = useMemo(() => products, [products]);
 
     return (
@@ -142,6 +174,9 @@ const CreateOrder = () => {
                     <li>Products</li>
                     <li>Reports</li>
                     <li><img src="assets/dummy.jpg" alt="Profile" className="profile-pic" /></li>
+                    <li>
+                        <button onClick={handleLogout} className="logout-button">Logout</button>
+                    </li>
                 </ul>
             </nav>
 
@@ -158,6 +193,29 @@ const CreateOrder = () => {
                 </a>
 
                 <input type="file" accept=".csv" onChange={handleCSVUpload} />
+                <h3>View Available Products</h3>
+                <table className="available-products-table">
+                    <thead>
+                        <tr>
+                            <th>Product ID</th>
+                            <th>Item Code</th>
+                            <th>Description</th>
+                            <th>MOQ</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {availableProducts.map((product) => (
+                            <tr key={product.ProductID}>
+                                <td>{product.ProductID}</td>
+                                <td>{product.ItemCode}</td>
+                                <td>{product.ProductDescription}</td>
+                                <td>{product.MOQ}</td>
+                                <td>${product.Price.toFixed(2)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
 
                 <h3>Step 2: Review and Edit Your Order</h3>
                 <input
@@ -228,10 +286,7 @@ const CreateOrder = () => {
                 </table>
 
                 <h3>Step 3: Submit Your Order</h3>
-                <button type="submit" style={{ backgroundColor: '#b71c1c', color: 'white' }}>
-    Submit Order
-</button>
-
+                <button type="submit">Submit Order</button>
             </form>
         </div>
     );

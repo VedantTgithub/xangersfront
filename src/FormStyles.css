@@ -1,53 +1,55 @@
 /* Page Background */
 body {
-    background-color: rgba(200, 200, 200, 0.9); /* Greyish background for the entire page */
-    margin: 0; /* Remove default margin */
-    padding: 0; /* Remove default padding */
-    height: 100vh; /* Ensure the body takes up the full viewport height */
+    background-color: #f1f1f1; /* Light gray background for better contrast */
+    margin: 0;
+    padding: 0;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-family: 'Arial', sans-serif;
 }
 
 /* Navbar */
 .navbar {
-    background-color: #b71c1c; /* Red navbar */
+    background-color: #b71c1c; /* Dark red background for the navbar */
     padding: 15px;
-    text-align: center; /* Center the text */
-    width: 100%; /* Full width navbar */
+    text-align: center;
+    width: 100%;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Drop shadow */
 }
 
 .navbar h1 {
-    color: white; /* White text for "INT" */
+    color: white; /* White text */
     margin: 0;
-    font-size: 24px;
+    font-size: 28px;
     font-weight: bold;
-}
-
-/* Form Container */
-.form-container {
-    background-color: rgba(200, 200, 200, 0.9); /* Grey background for the page */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: calc(100vh - 60px); /* Full height minus navbar height */
-    width: 100%;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 /* Card Styles */
 .form-card {
-    background-color: #b71c1c; /* Red card background */
+    background-color: #f35454; /* Red card background */
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
-    width: 380px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 10px 10px rgba(0, 0, 0, 0.22); /* Stronger shadow */
+    width: 400px;
     text-align: center;
+    animation: fadeIn 0.6s ease-in-out; /* Smooth fade-in animation */
+    transition: transform 0.3s ease; /* Add smooth transformation */
+}
+
+.form-card:hover {
+    transform: scale(1.02); /* Subtle hover effect */
 }
 
 .form-card h2 {
-    color: white; /* White color for "Login" */
-    font-size: 24px;
-    margin-bottom: 20px;
+    color: white; /* White text for the heading */
+    font-size: 26px;
+    margin-bottom: 25px;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
 /* Form Field Styles */
@@ -60,43 +62,78 @@ body {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
-    color: white; /* White color for input labels */
+    color: white; /* White text for the labels */
 }
 
-.form-field input {
-    width: 100%;
-    padding: 10px;
-    border: 2px solid white; /* White border for input fields */
+/* Input Field and Dropdown Styles */
+.form-field input, .form-field select {
+    width: 100%; /* Ensures the input fields and select dropdown have the same width */
+    padding: 12px;
+    border: 2px solid white; /* White border for inputs and dropdown */
     border-radius: 8px;
     background-color: white;
+    font-size: 16px;
     color: #b71c1c; /* Red text in input fields */
-    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box; /* Ensures padding and border are included in the element's width and height */
+}
+
+.form-field select {
+    appearance: none; /* Removes the default dropdown arrow */
+    height: 44px; /* Adjust height to match input fields */
+}
+
+.form-field input:focus, .form-field select:focus {
+    border-color: white; /* White border on focus */
+    outline: none;
 }
 
 /* Submit Button */
 .submit-button {
-    padding: 10px 20px;
-    background-color: white; /* White button background */
-    color: #b71c1c; /* Red text on the button */
+     /* Ensure button matches input width */
+    padding: 12px 25px;
+    background-color: rgb(0, 0, 0); /* White button background */
+    color: #ffffff; /* Red text on the button */
     border: none;
-    border-radius: 5px;
-    font-size: 16px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .submit-button:hover {
-    background-color: #e60000; /* Darker red on hover */
+    background-color: #ff5252; /* Lighter red on hover */
     color: white; /* White text on hover */
+    transform: translateY(-2px); /* Slight lift on hover */
 }
 
 /* Link Styles */
 p {
     margin-top: 20px;
     color: white; /* White text for the link */
+    font-size: 14px;
 }
 
 a {
-    color: white;
+    color: white; /* White color for the link */
+    text-decoration: none;
+    font-weight: bold;
+}
+
+a:hover {
     text-decoration: underline;
+    color: #ff8a80; /* Lighter red on hover */
+}
+
+/* Animations */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
