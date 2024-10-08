@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
 import './CreateOrder.css';
-import { Link } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 
 const CreateOrder = () => {
     const [distributorName, setDistributorName] = useState('');
@@ -12,6 +11,35 @@ const CreateOrder = () => {
     const [totalValue, setTotalValue] = useState(0);
     const [products, setProducts] = useState([]);
     const [redirectToHome, setRedirectToHome] = useState(false);
+    const [distributorCountry, setDistributorCountry] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const distributorId = localStorage.getItem('distributorId');
+                if (!distributorId) {
+                    throw new Error('Distributor ID not found');
+                }
+
+                const distributorResponse = await axios.get(`http://localhost:1234/api/distributors/${distributorId}`);
+                setDistributorName(distributorResponse.data.DistributorName);
+                setDistributorCountry(distributorResponse.data.CountryName);
+
+                const productsResponse = await axios.get(`http://localhost:1234/api/products/country/${distributorResponse.data.CountryName}`);
+                setProducts(productsResponse.data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const handleLogout = async () => {
         try {
@@ -181,6 +209,37 @@ const CreateOrder = () => {
 
                 <input type="file" accept=".csv" onChange={handleCSVUpload} />
 
+                <h3>Step 1: Review Product Catalog</h3>
+                {isLoading ? (
+                    <p>Loading product catalog...</p>
+                ) : error ? (
+                    <p>Error: {error}</p>
+                ) : (
+                    <div>
+                        <h4>Product Details for {distributorCountry}</h4>
+                        <table className="product-details-table">
+                            <thead>
+                                <tr>
+                                    <th>Product Code</th>
+                                    <th>Description</th>
+                                    <th>MOQ</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.map((product, index) => (
+                                    <tr key={index}>
+                                        <td>{product.ItemCode}</td>
+                                        <td>{product.ProductDescription}</td>
+                                        <td>{product.MOQ}</td>
+                                        <td>${Number(product.Price).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
                 <h3>Step 2: Review and Edit Your Order</h3>
                 <input
                     type="text"
@@ -207,32 +266,28 @@ const CreateOrder = () => {
                             <th>MOQ</th>
                             <th>Price</th>
                             <th>Quantity Ordered</th>
-                            <th>Total Value</th>
-                            <th>Edit</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {products.map((product, index) => (
                             <tr key={index}>
-                                {product.isEditing ? (
-                                    <>
-                                        <td><input type="text" value={product.code} onChange={(e) => handleInputChange(index, 'code', e.target.value)} /></td>
-                                        <td><input type="text" value={product.description} onChange={(e) => handleInputChange(index, 'description', e.target.value)} /></td>
-                                        <td><input type="number" value={product.minOrderQty} onChange={(e) => handleInputChange(index, 'minOrderQty', e.target.value)} /></td>
-                                        <td><input type="number" value={product.price} onChange={(e) => handleInputChange(index, 'price', e.target.value)} /></td>
-                                        <td><input type="number" value={product.quantityOrdered} onChange={(e) => handleInputChange(index, 'quantityOrdered', e.target.value)} /></td>
-                                        <td>${(product.price * product.quantityOrdered).toFixed(2)}</td>
-                                    </>
-                                ) : (
-                                    <>
-                                        <td>{product.code}</td>
-                                        <td>{product.description}</td>
-                                        <td>{product.minOrderQty}</td>
-                                        <td>${Number(product.price).toFixed(2)}</td>
-                                        <td>{product.quantityOrdered}</td>
-                                        <td>${product.totalValue.toFixed(2)}</td>
-                                    </>
-                                )}
+                                <td>{product.code}</td>
+                                <td>{product.description}</td>
+                                <td>{product.minOrderQty}</td>
+                                <td>${product.price.toFixed(2)}</td>
+                                <td>
+                                    {product.isEditing ? (
+                                        <input
+                                            type="number"
+                                            value={product.quantityOrdered}
+                                            onChange={(e) => handleQuantityChange(index, e.target.value)}
+                                            min={1}
+                                        />
+                                    ) : (
+                                        product.quantityOrdered
+                                    )}
+                                </td>
                                 <td>
                                     <button type="button" onClick={() => handleEditToggle(index)}>
                                         {product.isEditing ? 'Save' : 'Edit'}
@@ -241,15 +296,8 @@ const CreateOrder = () => {
                             </tr>
                         ))}
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colSpan="6">Total</td>
-                            <td>${totalValue.toFixed(2)}</td>
-                        </tr>
-                    </tfoot>
                 </table>
 
-                <h3>Step 3: Submit Your Order</h3>
                 <button type="submit">Submit Order</button>
             </form>
         </div>
