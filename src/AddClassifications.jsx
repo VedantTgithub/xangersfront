@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './AddClassifications.css';
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = 'http://localhost:1234';

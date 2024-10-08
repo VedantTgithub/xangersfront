@@ -9,7 +9,6 @@ const AddProduct = () => {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [countries, setCountries] = useState([]); // Added countries state
   const [formData, setFormData] = useState({
     BrandID: '',
     CategoryID: '',
@@ -18,16 +17,13 @@ const AddProduct = () => {
     PartCode: '',
     ProductDescription: '',
     Warranty: '',
-    MOQ: '',
-    CountryID: '', // Added CountryID field
-    Price: '' // Added Price field for Country_Product table
+    MOQ: ''
   });
 
   useEffect(() => {
     fetchBrands();
     fetchCategories();
     fetchSubcategories();
-    fetchCountries(); // Fetch countries when component mounts
   }, []);
 
   const fetchBrands = async () => {
@@ -57,15 +53,6 @@ const AddProduct = () => {
     }
   };
 
-  const fetchCountries = async () => {
-    try {
-      const response = await axios.get('/api/countries');
-      setCountries(response.data);
-    } catch (error) {
-      console.error('Error fetching countries:', error);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -84,9 +71,7 @@ const AddProduct = () => {
         PartCode: '',
         ProductDescription: '',
         Warranty: '',
-        MOQ: '',
-        CountryID: '', // Reset CountryID
-        Price: '' // Reset Price
+        MOQ: ''
       });
     } catch (error) {
       console.error('Error adding product:', error);
@@ -97,7 +82,7 @@ const AddProduct = () => {
   return (
     <div className="container">
       <h1>Add New Product</h1>
-      <div className="form-section product-form">
+      <div className="form-section horizontal-form">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Brand:</label>
@@ -146,22 +131,6 @@ const AddProduct = () => {
             <label>MOQ:</label>
             <input type="number" name="MOQ" value={formData.MOQ} onChange={handleInputChange} required />
           </div>
-
-          {/* New Fields for Country Product */}
-          <div className="form-group">
-            <label>Country:</label>
-            <select name="CountryID" value={formData.CountryID} onChange={handleInputChange} required>
-              <option value="">Select a country</option>
-              {countries.map(country => (
-                <option key={country.CountryID} value={country.CountryID}>{country.CountryName}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Price:</label>
-            <input type="number" name="Price" value={formData.Price} onChange={handleInputChange} required />
-          </div>
-
           <button type="submit">Add Product</button>
         </form>
       </div>

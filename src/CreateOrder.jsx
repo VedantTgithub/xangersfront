@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
 import './CreateOrder.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 const CreateOrder = () => {
     const [distributorName, setDistributorName] = useState('');
@@ -10,32 +11,20 @@ const CreateOrder = () => {
     const [totalQty, setTotalQty] = useState(0);
     const [totalValue, setTotalValue] = useState(0);
     const [products, setProducts] = useState([]);
-    const navigate = useNavigate();
-    const [availableProducts, setAvailableProducts] = useState([]);
-    
-    useEffect(() => {
-        const fetchDistributorAndProducts = async () => {
-            try {
-                const distributorId = sessionStorage.getItem('distributorId');
-                if (!distributorId) {
-                    alert('Distributor information not found. Please log in again.');
-                    navigate('/');
-                    return;
-                }
+    const [redirectToHome, setRedirectToHome] = useState(false);
 
-                const distributorResponse = await axios.get(`http://localhost:1234/api/distributors/${distributorId}`);
-                setDistributorName(distributorResponse.data.DistributorName);
+    const handleLogout = async () => {
+        try {
+            await axios.post('http://localhost:1234/api/logout', {}, { withCredentials: true });
+            setRedirectToHome(true);
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
+    };
 
-                const productsResponse = await axios.get(`http://localhost:1234/api/products/country/${distributorResponse.data.CountryName}`);
-                setAvailableProducts(productsResponse.data);
-            } catch (error) {
-                console.error('Error fetching distributor information or products:', error);
-                alert('Failed to load distributor information or available products.');
-            }
-        };
-
-        fetchDistributorAndProducts();
-    }, [navigate]);
+    if (redirectToHome) {
+        return <Navigate to="/" />;
+    }
 
     const handleCSVUpload = (e) => {
         const file = e.target.files[0];
@@ -43,10 +32,6 @@ const CreateOrder = () => {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                error: (error) => {
-                    console.error('Error parsing CSV:', error);
-                    alert('Error parsing CSV file. Please check the file format.');
-                },
                 complete: (result) => {
                     const parsedProducts = result.data.map(row => ({
                         code: row["Product Code"] || '',
@@ -59,57 +44,69 @@ const CreateOrder = () => {
                     }));
 
                     setProducts(parsedProducts);
+
+                    const totalQty = parsedProducts.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
+                    const totalValue = parsedProducts.reduce((sum, product) => sum + product.totalValue, 0);
+                    setTotalQty(totalQty);
+                    setTotalValue(totalValue);
                 }
             });
         }
     };
 
     const handleQuantityChange = (index, newQty) => {
-        setProducts(prevProducts => {
-            return prevProducts.map((product, i) => {
-                if (i === index) {
-                    const updatedQty = Number(newQty);
-                    return { ...product, quantityOrdered: updatedQty, totalValue: updatedQty * product.price };
-                }
-                return product;
-            });
+        const updatedProducts = products.map((product, i) => {
+            if (i === index) {
+                const updatedQty = Number(newQty);
+                return { ...product, quantityOrdered: updatedQty, totalValue: updatedQty * product.price };
+            }
+            return product;
         });
+
+        setProducts(updatedProducts);
+        updateTotals(updatedProducts);
     };
 
     const handleEditToggle = (index) => {
-        setProducts(prevProducts => {
-            return prevProducts.map((product, i) =>
-                i === index
-                    ? { ...product, isEditing: !product.isEditing }
-                    : product
-            );
-        });
+        const updatedProducts = products.map((product, i) =>
+            i === index
+                ? { ...product, isEditing: !product.isEditing }
+                : product
+        );
+
+        // If switching from editing to non-editing, update the totals
+        if (updatedProducts[index].isEditing) {
+            updateTotals(updatedProducts);
+        }
+        
+        setProducts(updatedProducts);
     };
 
     const handleInputChange = (index, field, value) => {
-        setProducts(prevProducts => {
-            return prevProducts.map((product, i) => {
-                if (i === index) {
-                    const updatedProduct = {
-                        ...product,
-                        [field]: field === 'price' || field === 'minOrderQty' || field === 'quantityOrdered'
-                            ? parseFloat(value) || 0
-                            : value
-                    };
-                    updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered;
-                    return updatedProduct;
-                }
-                return product;
-            });
+        const updatedProducts = products.map((product, i) => {
+            if (i === index) {
+                const updatedProduct = {
+                    ...product,
+                    [field]: field === 'price' || field === 'minOrderQty' || field === 'quantityOrdered'
+                        ? parseFloat(value) || 0
+                        : value
+                };
+                updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered; // Recalculate total value
+                return updatedProduct;
+            }
+            return product;
         });
+        
+        setProducts(updatedProducts);
+        updateTotals(updatedProducts);
     };
 
-    useEffect(() => {
-        const newTotalQty = products.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
-        const newTotalValue = products.reduce((sum, product) => sum + product.totalValue, 0);
+    const updateTotals = (updatedProducts) => {
+        const newTotalQty = updatedProducts.reduce((sum, product) => sum + Number(product.quantityOrdered), 0);
+        const newTotalValue = updatedProducts.reduce((sum, product) => sum + product.totalValue, 0);
         setTotalQty(newTotalQty);
         setTotalValue(newTotalValue);
-    }, [products]);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -144,7 +141,7 @@ const CreateOrder = () => {
         };
 
         try {
-            const response = await axios.post('https://xangarsorders1-29c4574ee3cb.herokuapp.com/api/orders', orderData);
+            const response = await axios.post('http://localhost:1234/api/orders', orderData);
             if (response.status === 200) {
                 alert('Order submitted successfully');
             }
@@ -154,18 +151,10 @@ const CreateOrder = () => {
         }
     };
 
-    // Logout function to clear session and redirect to login page
-    const handleLogout = () => {
-        sessionStorage.removeItem('user'); // Clearing session
-        navigate('/'); // Redirecting to login page
-    };
-
-    const memoizedProducts = useMemo(() => products, [products]);
-
     return (
         <div className="create-order-container">
             <nav className="navbar">
-                <div className="navbar-brand">INT</div>
+                <div className="navbar-brand">Acme Corp</div>
                 <ul className="nav-links">
                     <li>Dashboard</li>
                     <li>Orders</li>
@@ -175,7 +164,7 @@ const CreateOrder = () => {
                     <li>Reports</li>
                     <li><img src="assets/dummy.jpg" alt="Profile" className="profile-pic" /></li>
                     <li>
-                        <button onClick={handleLogout} className="logout-button">Logout</button>
+                        <button onClick={handleLogout}>Logout</button>
                     </li>
                 </ul>
             </nav>
@@ -187,35 +176,10 @@ const CreateOrder = () => {
             <form onSubmit={handleSubmit} className="order-form">
                 <h3>Step 1: Upload an Order Template</h3>
                 <a href="/order_template.csv" download>
-                    <button type="button">
-                        Download Template
-                    </button>
+                    <button type="button">Download Template</button>
                 </a>
 
                 <input type="file" accept=".csv" onChange={handleCSVUpload} />
-                <h3>View Available Products</h3>
-                <table className="available-products-table">
-                    <thead>
-                        <tr>
-                            <th>Product ID</th>
-                            <th>Item Code</th>
-                            <th>Description</th>
-                            <th>MOQ</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {availableProducts.map((product) => (
-                            <tr key={product.ProductID}>
-                                <td>{product.ProductID}</td>
-                                <td>{product.ItemCode}</td>
-                                <td>{product.ProductDescription}</td>
-                                <td>{product.MOQ}</td>
-                                <td>${product.Price.toFixed(2)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
 
                 <h3>Step 2: Review and Edit Your Order</h3>
                 <input
@@ -248,7 +212,7 @@ const CreateOrder = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {memoizedProducts.map((product, index) => (
+                        {products.map((product, index) => (
                             <tr key={index}>
                                 {product.isEditing ? (
                                     <>

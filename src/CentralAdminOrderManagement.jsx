@@ -22,7 +22,7 @@ const CentralAdminDashboard = () => {
         const fetchConsolidatedOrders = async () => {
             try {
                 setLoading(true); // Start loading
-                const response = await axios.get('https://xangarsorders1-29c4574ee3cb.herokuapp.com/api/consolidated-orders', {
+                const response = await axios.get('http://localhost:1234/api/consolidated-orders', {
                     headers: {
                         Authorization: `Bearer ${sessionToken}`, // Pass the session token in the header
                     }

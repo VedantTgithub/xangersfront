@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-
+import './ProductList.css';
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = 'http://localhost:1234';
@@ -34,7 +34,7 @@ const ProductList = () => {
   };
 
   return (
-    <div className="container">
+    <div className="product-container">
       <h1>Product Management</h1>
       <div className="navigation-buttons">
         <Link to="/add-classifications" className="nav-button">Add Brand, Category, Subcategory</Link>
@@ -43,7 +43,7 @@ const ProductList = () => {
       <div className="table-section">
         <h2>Product List</h2>
         <div className="table-container">
-          <table>
+          <table className="product-table">
             <thead>
               <tr>
                 <th>ID</th>
