@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
+import Cookies from 'js-cookie'; // Import js-cookie
 import './CreateOrder.css';
 import { Link, Navigate } from 'react-router-dom';
 
@@ -17,29 +18,39 @@ const CreateOrder = () => {
 
     useEffect(() => {
         const fetchData = async () => {
+            console.log('Fetching data...');  // Add this log
             setIsLoading(true);
             setError(null);
             try {
-                const distributorId = localStorage.getItem('distributorId');
+                const distributorId = sessionStorage.getItem('distributorId');
+                console.log('Distributor ID:', distributorId);  // Log the distributorId
+    
                 if (!distributorId) {
                     throw new Error('Distributor ID not found');
                 }
-
+    
                 const distributorResponse = await axios.get(`http://localhost:1234/api/distributors/${distributorId}`);
-                setDistributorName(distributorResponse.data.DistributorName);
-                setDistributorCountry(distributorResponse.data.CountryName);
-
-                const productsResponse = await axios.get(`http://localhost:1234/api/products/country/${distributorResponse.data.CountryName}`);
+                console.log('Distributor response:', distributorResponse);  // Log the response
+    
+                const country = distributorResponse.data.CountryName;
+                setDistributorCountry(country);
+    
+                const productsResponse = await axios.get(`http://localhost:1234/api/products-by-country`, {
+                    params: { countryName: country }
+                });
+                console.log('Products response:', productsResponse);  // Log the products response
                 setProducts(productsResponse.data);
             } catch (err) {
+                console.error('Error:', err);
                 setError(err.message);
             } finally {
                 setIsLoading(false);
             }
         };
-
+    
         fetchData();
     }, []);
+    
 
     const handleLogout = async () => {
         try {
@@ -102,7 +113,6 @@ const CreateOrder = () => {
                 : product
         );
 
-        // If switching from editing to non-editing, update the totals
         if (updatedProducts[index].isEditing) {
             updateTotals(updatedProducts);
         }
@@ -119,7 +129,7 @@ const CreateOrder = () => {
                         ? parseFloat(value) || 0
                         : value
                 };
-                updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered; // Recalculate total value
+                updatedProduct.totalValue = updatedProduct.price * updatedProduct.quantityOrdered;
                 return updatedProduct;
             }
             return product;
@@ -209,7 +219,7 @@ const CreateOrder = () => {
 
                 <input type="file" accept=".csv" onChange={handleCSVUpload} />
 
-                <h3>Step 1: Review Product Catalog</h3>
+                <h3>Step 2: Review Product Catalog</h3>
                 {isLoading ? (
                     <p>Loading product catalog...</p>
                 ) : error ? (
@@ -229,10 +239,10 @@ const CreateOrder = () => {
                             <tbody>
                                 {products.map((product, index) => (
                                     <tr key={index}>
-                                        <td>{product.ItemCode}</td>
-                                        <td>{product.ProductDescription}</td>
-                                        <td>{product.MOQ}</td>
-                                        <td>${Number(product.Price).toFixed(2)}</td>
+                                        <td>{product.code}</td>
+                                        <td>{product.description}</td>
+                                        <td>{product.minOrderQty}</td>
+                                        <td>${Number(product.price).toFixed(2)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -240,12 +250,12 @@ const CreateOrder = () => {
                     </div>
                 )}
 
-                <h3>Step 2: Review and Edit Your Order</h3>
+                <h3>Step 3: Review and Edit Your Order</h3>
                 <input
                     type="text"
                     placeholder="Distributor Name"
                     value={distributorName}
-                    onChange={(e) => setDistributorName(e.target.value)}
+                    readOnly
                 />
                 <input
                     type="text"
@@ -253,12 +263,8 @@ const CreateOrder = () => {
                     value={orderNo}
                     onChange={(e) => setOrderNo(e.target.value)}
                 />
-                <div className="totals">
-                    <p>Total Quantity: {totalQty}</p>
-                    <p>Total Value: ${totalValue.toFixed(2)}</p>
-                </div>
 
-                <table>
+                <table className="order-table">
                     <thead>
                         <tr>
                             <th>Product Code</th>
@@ -266,6 +272,7 @@ const CreateOrder = () => {
                             <th>MOQ</th>
                             <th>Price</th>
                             <th>Quantity Ordered</th>
+                            <th>Total Value</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -282,12 +289,12 @@ const CreateOrder = () => {
                                             type="number"
                                             value={product.quantityOrdered}
                                             onChange={(e) => handleQuantityChange(index, e.target.value)}
-                                            min={1}
                                         />
                                     ) : (
                                         product.quantityOrdered
                                     )}
                                 </td>
+                                <td>${product.totalValue.toFixed(2)}</td>
                                 <td>
                                     <button type="button" onClick={() => handleEditToggle(index)}>
                                         {product.isEditing ? 'Save' : 'Edit'}
@@ -298,7 +305,12 @@ const CreateOrder = () => {
                     </tbody>
                 </table>
 
-                <button type="submit">Submit Order</button>
+                <div className="totals">
+                    <p>Total Quantity: {totalQty}</p>
+                    <p>Total Value: ${totalValue.toFixed(2)}</p>
+                </div>
+
+                <button type="submit" className="submit-button">Submit Order</button>
             </form>
         </div>
     );
